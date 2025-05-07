@@ -1,57 +1,68 @@
 import os
+import uuid
 import tempfile
 import shutil
 import subprocess
-from flask import Flask, request, send_file, render_template
+import json
+from flask import Flask, request, jsonify, send_file, render_template
 from PyPDF2 import PdfMerger
 
 app = Flask(__name__)
 
+# Carpeta base para temporales
+temp_base = tempfile.gettempdir()
+
 @app.route('/')
 def index():
-    # Página con formulario de subida de archivos
     return render_template('index.html')
 
-@app.route('/convert', methods=['POST'])
-def convert():
-    # Crear carpeta temporal para esta petición
-    workdir = tempfile.mkdtemp(prefix='pdfbldr_')
-    try:
-        uploaded = request.files.getlist('file')
-        pdfs = []
-        for f in uploaded:
-            filename = f.filename
-            path = os.path.join(workdir, filename)
-            f.save(path)
-            # Si es Word, convertir a PDF con LibreOffice cabeza-less
-            if path.lower().endswith(('.docx', '.doc')):
-                subprocess.run([
-                    'soffice', '--headless',
-                    '--convert-to', 'pdf',
-                    path,
-                    '--outdir', workdir
-                ], check=True)
-                pdfs.append(os.path.splitext(path)[0] + '.pdf')
-            # Si ya es PDF, añadir directamente
-            elif path.lower().endswith('.pdf'):
-                pdfs.append(path)
+@app.route('/upload', methods=['POST'])
+def upload():
+    # Crear carpeta temporal para esta sesión
+    session_id = str(uuid.uuid4())
+    workdir = os.path.join(temp_base, f"pdfbldr_{session_id}")
+    os.makedirs(workdir, exist_ok=True)
+    pdfs = []
 
-        # Fusionar todos los PDFs
-        merger = PdfMerger()
-        for pdf in pdfs:
-            merger.append(pdf)
-        output_path = os.path.join(workdir, 'expediente_unificado.pdf')
-        merger.write(output_path)
-        merger.close()
+    for f in request.files.getlist('file'):
+        filename = f.filename
+        src = os.path.join(workdir, filename)
+        f.save(src)
+        # Convertir .doc/.docx a PDF
+        if src.lower().endswith(('.docx', '.doc')):
+            subprocess.run([
+                'soffice', '--headless',
+                '--convert-to', 'pdf', src,
+                '--outdir', workdir
+            ], check=True)
+            pdf_name = os.path.splitext(filename)[0] + '.pdf'
+            pdfs.append(pdf_name)
+        # Incluir PDF directamente
+        elif src.lower().endswith('.pdf'):
+            pdfs.append(filename)
 
-        # Devolver el PDF unificado al cliente
-        return send_file(output_path, as_attachment=True)
+    return jsonify({'session_id': session_id, 'files': pdfs})
 
-    finally:
-        # Eliminar la carpeta temporal
-        shutil.rmtree(workdir, ignore_errors=True)
+@app.route('/merge', methods=['POST'])
+def merge():
+    data = request.get_json()
+    session_id = data.get('session_id')
+    order = data.get('order', [])
+    workdir = os.path.join(temp_base, f"pdfbldr_{session_id}")
+
+    merger = PdfMerger()
+    for name in order:
+        path = os.path.join(workdir, name)
+        merger.append(path)
+    output_path = os.path.join(workdir, 'expediente_unificado.pdf')
+    merger.write(output_path)
+    merger.close()
+
+    # Enviar y limpiar
+    result = send_file(output_path, as_attachment=True, download_name='expediente_unificado.pdf')
+    shutil.rmtree(workdir, ignore_errors=True)
+    return result
 
 if __name__ == '__main__':
-    # Leer puerto de entorno o usar 10000
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)

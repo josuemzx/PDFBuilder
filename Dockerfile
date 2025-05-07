@@ -3,23 +3,23 @@ FROM python:3.11-slim
 
 # Instalamos LibreOffice headless para conversión Word→PDF
 RUN apt-get update && \
-    apt-get install -y \  
-        libreoffice-writer \  
-        libreoffice-core \  
-        libreoffice-common \  
-    && rm -rf /var/lib/apt/lists/*
+    apt-get install -y \
+        libreoffice-writer \
+        libreoffice-core \
+        libreoffice-common && \
+    rm -rf /var/lib/apt/lists/*
 
 # Directorio de trabajo
 WORKDIR /app
 
-# Copiamos y instalamos dependencias Python
+# Copiamos dependencias e instalamos
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiamos aplicación y plantillas
+# Copiamos la aplicación y templates
 COPY . ./
 
-# Exponemos un puerto genérico (Render inyecta $PORT)
+# Puerto genérico, Render inyecta $PORT
 EXPOSE 10000
 
 # Arrancamos con Gunicorn, usando $PORT o 10000 por defecto

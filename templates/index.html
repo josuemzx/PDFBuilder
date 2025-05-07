@@ -2,70 +2,116 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PDFBuilder Web</title>
   <style>
-    body { font-family: sans-serif; background:#f0f2f5; }
-    .box { max-width:600px; margin:50px auto; background:white;
-           padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-    .dz { border:2px dashed #bbb; padding:40px; text-align:center;
-          color:#666; cursor:pointer; border-radius:4px; transition: 0.2s; }
-    .dz.hover { border-color:#333; color:#333; }
-    ul { list-style:none; padding:0; margin:20px 0; max-height:200px; overflow:auto; }
-    li { margin:4px 0; padding:8px; background:#fafafa; border:1px solid #ddd;
-         display:flex; justify-content:space-between; align-items:center; border-radius:4px; }
-    button { background:#4a90e2; color:white; border:none; padding:10px 20px;
-             border-radius:4px; cursor:pointer; }
-    button:disabled { background:#ccc; cursor:not-allowed; }
+    body { font-family: Arial, sans-serif; background: #f4f4f9; margin: 0; padding: 0; }
+    .container { max-width: 800px; margin: 40px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #333; }
+    .dropzone { border: 2px dashed #bbb; padding: 40px; text-align: center; color: #666; cursor: pointer; border-radius: 4px; }
+    .dropzone.hover { border-color: #777; color: #444; }
+    ul { list-style: none; padding: 0; margin: 20px 0; max-height: 300px; overflow-y: auto; }
+    li { background: #fafafa; margin: 6px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; cursor: grab; }
+    li.dragging { opacity: 0.5; }
+    .controls { text-align: center; margin-top: 20px; }
+    button { background: #4a90e2; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; margin: 0 5px; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h2>PDFBuilder Web</h2>
-    <div id="dz" class="dz">Arrastra tus .docx/.pdf aquí o haz clic</div>
-    <input type="file" id="fileInput" multiple style="display:none" accept=".doc,.docx,.pdf">
-    <ul id="fileList"></ul>
-    <div style="text-align:center">
-      <button id="convertBtn" disabled>Convertir y Unir</button>
+  <div class="container">
+    <h1>PDFBuilder Web</h1>
+
+    <!-- Paso 1: Subida y conversión -->
+    <div id="step1">
+      <div id="dropzone" class="dropzone">Arrastra tus .docx/.doc/.pdf aquí o haz clic</div>
+      <input type="file" id="fileInput" multiple accept=".doc,.docx,.pdf" style="display:none" />
+      <ul id="fileList1"></ul>
+      <div class="controls"><button id="uploadBtn" disabled>Subir y Convertir</button></div>
+    </div>
+
+    <!-- Paso 2: Orden y merge -->
+    <div id="step2" style="display:none">
+      <p>Arrastra para reordenar:</p>
+      <ul id="fileList2"></ul>
+      <div class="controls"><button id="mergeBtn" disabled>Unir y Descargar</button></div>
     </div>
   </div>
 
   <script>
-    const dz = document.getElementById('dz'),
-          fi = document.getElementById('fileInput'),
-          fl = document.getElementById('fileList'),
-          btn = document.getElementById('convertBtn');
-    let files = [];
-    function render() {
-      fl.innerHTML = '';
-      files.forEach(f=> {
-        const li = document.createElement('li');
-        li.textContent = f.name;
-        fl.appendChild(li);
-      });
-      btn.disabled = !files.length;
-    }
-    dz.onclick = ()=> fi.click();
-    fi.onchange = ()=> { files.push(...fi.files); render(); };
-    ['dragover','dragenter'].forEach(e=>
-      dz.addEventListener(e, ev=>{ ev.preventDefault(); dz.classList.add('hover'); })
-    );
-    ['dragleave','drop'].forEach(e=>
-      dz.addEventListener(e, ev=>{
-        ev.preventDefault(); dz.classList.remove('hover');
-        if(e==='drop'){ files.push(...ev.dataTransfer.files); render(); }
-      })
-    );
+    let files = [], sessionId;
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const list1 = document.getElementById('fileList1');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const list2 = document.getElementById('fileList2');
+    const mergeBtn = document.getElementById('mergeBtn');
 
-    btn.onclick = async ()=>{
-      btn.disabled = true; btn.textContent='Procesando…';
-      const form = new FormData();
-      files.forEach(f=> form.append('file', f));
-      const resp = await fetch('/convert',{ method:'POST', body:form });
-      const blob = await resp.blob();
+    // Render step1 list\    function renderList1() {
+      list1.innerHTML = '';
+      files.forEach(f => {
+        const li = document.createElement('li'); li.textContent = f.name;
+        list1.appendChild(li);
+      });
+      uploadBtn.disabled = files.length === 0;
+    }
+
+    // Drag & drop events
+    dropzone.onclick = () => fileInput.click();
+    fileInput.onchange = () => { files.push(...fileInput.files); renderList1(); };
+    ['dragover','dragenter'].forEach(evt => dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('hover'); }));
+    ['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, e => {
+      e.preventDefault(); dropzone.classList.remove('hover');
+      if (evt === 'drop') { files.push(...e.dataTransfer.files); renderList1(); }
+    }));
+
+    // Upload & convert
+    uploadBtn.onclick = async () => {
+      uploadBtn.disabled = true; uploadBtn.textContent = 'Convirtiendo...';
+      const form = new FormData(); files.forEach(f => form.append('file', f));
+      const res = await fetch('/upload', { method: 'POST', body: form });
+      const data = await res.json(); sessionId = data.session_id;
+      // Prepare step2
+      files = data.files.map(name => ({ name }));
+      renderList2();
+      step1.style.display = 'none'; step2.style.display = 'block';
+    };
+
+    // Render step2 list with drag&drop reordering
+    function renderList2() {
+      list2.innerHTML = '';
+      files.forEach((f, i) => {
+        const li = document.createElement('li'); li.draggable = true;
+        li.textContent = f.name;
+        li.dataset.index = i;
+        li.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', i); li.classList.add('dragging'); });
+        li.addEventListener('dragover', e => { e.preventDefault(); });
+        li.addEventListener('drop', e => {
+          const from = parseInt(e.dataTransfer.getData('text/plain'));
+          const to = Array.from(list2.children).indexOf(li);
+          files.splice(to, 0, files.splice(from, 1)[0]);
+          renderList2();
+        });
+        li.addEventListener('dragend', () => li.classList.remove('dragging'));
+        list2.appendChild(li);
+      });
+      mergeBtn.disabled = files.length === 0;
+    }
+
+    // Merge & download
+    mergeBtn.onclick = async () => {
+      mergeBtn.disabled = true; mergeBtn.textContent = 'Uniendo...';
+      const res = await fetch('/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, order: files.map(f => f.name) })
+      });
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download='expediente_unificado.pdf'; a.click();
-      btn.textContent='Convertir y Unir'; files=[]; render();
+      const a = document.createElement('a'); a.href = url; a.download = 'expediente_unificado.pdf'; a.click();
+      mergeBtn.textContent = 'Unir y Descargar';
     };
   </script>
 </body>
