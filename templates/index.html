@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>PDFBuilder Web</title>
+  <style>
+    body { font-family: sans-serif; background:#f0f2f5; }
+    .box { max-width:600px; margin:50px auto; background:white;
+           padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+    .dz { border:2px dashed #bbb; padding:40px; text-align:center;
+          color:#666; cursor:pointer; border-radius:4px; transition: 0.2s; }
+    .dz.hover { border-color:#333; color:#333; }
+    ul { list-style:none; padding:0; margin:20px 0; max-height:200px; overflow:auto; }
+    li { margin:4px 0; padding:8px; background:#fafafa; border:1px solid #ddd;
+         display:flex; justify-content:space-between; align-items:center; border-radius:4px; }
+    button { background:#4a90e2; color:white; border:none; padding:10px 20px;
+             border-radius:4px; cursor:pointer; }
+    button:disabled { background:#ccc; cursor:not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>PDFBuilder Web</h2>
+    <div id="dz" class="dz">Arrastra tus .docx/.pdf aquí o haz clic</div>
+    <input type="file" id="fileInput" multiple style="display:none" accept=".doc,.docx,.pdf">
+    <ul id="fileList"></ul>
+    <div style="text-align:center">
+      <button id="convertBtn" disabled>Convertir y Unir</button>
+    </div>
+  </div>
+
+  <script>
+    const dz = document.getElementById('dz'),
+          fi = document.getElementById('fileInput'),
+          fl = document.getElementById('fileList'),
+          btn = document.getElementById('convertBtn');
+    let files = [];
+    function render() {
+      fl.innerHTML = '';
+      files.forEach(f=> {
+        const li = document.createElement('li');
+        li.textContent = f.name;
+        fl.appendChild(li);
+      });
+      btn.disabled = !files.length;
+    }
+    dz.onclick = ()=> fi.click();
+    fi.onchange = ()=> { files.push(...fi.files); render(); };
+    ['dragover','dragenter'].forEach(e=>
+      dz.addEventListener(e, ev=>{ ev.preventDefault(); dz.classList.add('hover'); })
+    );
+    ['dragleave','drop'].forEach(e=>
+      dz.addEventListener(e, ev=>{
+        ev.preventDefault(); dz.classList.remove('hover');
+        if(e==='drop'){ files.push(...ev.dataTransfer.files); render(); }
+      })
+    );
+
+    btn.onclick = async ()=>{
+      btn.disabled = true; btn.textContent='Procesando…';
+      const form = new FormData();
+      files.forEach(f=> form.append('file', f));
+      const resp = await fetch('/convert',{ method:'POST', body:form });
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download='expediente_unificado.pdf'; a.click();
+      btn.textContent='Convertir y Unir'; files=[]; render();
+    };
+  </script>
+</body>
+</html>
