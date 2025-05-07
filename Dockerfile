@@ -1,7 +1,8 @@
 # Partimos de la imagen base de Python
 FROM python:3.11-slim
 
-# Instalamos LibreOffice headless para conversión Word→PDF\RUN apt-get update && \
+# Instalamos LibreOffice headless para conversión Word→PDF\ n# (comentario separado de la instrucción RUN)
+RUN apt-get update && \
     apt-get install -y libreoffice-writer libreoffice-core libreoffice-common libreoffice-python3 && \
     rm -rf /var/lib/apt/lists/*
 
