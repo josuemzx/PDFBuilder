@@ -9,11 +9,12 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
+    # Página principal con formulario de subida
     return render_template('index.html')
 
 @app.route('/convert', methods=['POST'])
 def convert():
-    # Carpeta temporal única
+    # Crear carpeta temporal única
     workdir = tempfile.mkdtemp(prefix='pdfbldr_')
     try:
         uploaded = request.files.getlist('file')
@@ -25,7 +26,8 @@ def convert():
             # Si es Word, convertir a PDF con LibreOffice
             if path.lower().endswith(('.docx', '.doc')):
                 subprocess.run([
-                    'soffice', '--headless',
+                    'soffice',
+                    '--headless',
                     '--convert-to', 'pdf',
                     path,
                     '--outdir', workdir
@@ -35,7 +37,7 @@ def convert():
             elif path.lower().endswith('.pdf'):
                 pdfs.append(path)
 
-        # Fusionar PDFs
+        # Fusionar PDFs con PyPDF2
         merger = PdfMerger()
         for pdf in pdfs:
             merger.append(pdf)
@@ -43,14 +45,14 @@ def convert():
         merger.write(output_path)
         merger.close()
 
-        # Devolver el PDF unificado
+        # Enviar el PDF unificado al cliente
         return send_file(output_path, as_attachment=True)
 
     finally:
-        # Limpieza de temporales
+        # Limpiar la carpeta temporal
         shutil.rmtree(workdir, ignore_errors=True)
 
 if __name__ == '__main__':
-    # Levanta en el puerto definido por Render o 10000 localmente
+    # Determinar puerto de escucha desde la variable de entorno
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
