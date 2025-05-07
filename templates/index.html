@@ -3,29 +3,149 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDFBuilder Web</title>
+  <title>PDFBuilder Pro</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f9; margin: 0; padding: 0; }
-    .container { max-width: 800px; margin: 40px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    h1 { text-align: center; color: #333; }
-    .dropzone { border: 2px dashed #bbb; padding: 40px; text-align: center; color: #666; cursor: pointer; border-radius: 4px; }
-    .dropzone.hover { border-color: #777; color: #444; }
-    ul { list-style: none; padding: 0; margin: 20px 0; max-height: 300px; overflow-y: auto; }
-    li { background: #fafafa; margin: 6px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
-    li.selected { background: #ddd; }
-    .controls { text-align: center; margin-top: 20px; }
-    button { background: #4a90e2; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; margin: 0 5px; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    .order-buttons { margin-bottom: 10px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f9;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    /* Encabezado renovado */
+    .header {
+      text-align: center;
+      padding: 20px 0;
+      background: linear-gradient(135deg, #6D5BBA,rgb(6, 2, 9));
+      border-radius: 8px;
+      color: #ffffff;
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 2.5em;
+      font-family: "Segoe UI", sans-serif;
+      letter-spacing: 2px;
+    }
+    .header .subtitle {
+      margin-top: 8px;
+      font-size: 1.1em;
+      color: rgba(255,255,255,0.85);
+    }
+
+    .dropzone {
+      border: 2px dashed #bbb;
+      padding: 40px;
+      text-align: center;
+      color: #666;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .dropzone.hover {
+      border-color: #777;
+      color: #444;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    li {
+      background: #fafafa;
+      margin: 6px 0;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    li.selected {
+      background: #ddd;
+    }
+    .controls {
+      text-align: center;
+      margin-top: 20px;
+    }
+    button {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 0 5px;
+    }
+    button:disabled {
+      background: #020AF5;
+      cursor: not-allowed;
+    }
+    .order-buttons {
+      margin-bottom: 10px;
+    }
+
+    /* Estilo para las instrucciones */
+    .instructions {
+      background: #f9f9f9;
+      border-left: 4px solid #4a90e2;
+      padding: 15px;
+      margin-top: 30px;
+      border-radius: 4px;
+      color: #333;
+    }
+    .instructions h2 {
+      margin-top: 0;
+      font-size: 1.2em;
+    }
+    .instructions ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .instructions li {
+      margin-bottom: 10px;
+    }
+
+    /* Estilo para la caja de donación */
+    .donation-box {
+      background: #fffbea;
+      border: 1px solid #ffdd00;
+      padding: 15px;
+      margin-top: 40px;
+      border-radius: 4px;
+      color: #333;
+      font-size: 0.95em;
+      line-height: 1.4;
+    }
+    .donation-box p {
+      margin: 0;
+    }
+    .donation-box p + p {
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>PDFBuilder Web</h1>
+
+    <!-- Encabezado mejorado -->
+    <header class="header">
+      <h1>📎PDFBuilder</h1>
+      <p class="subtitle">Convierte, ordena y fusiona tus archivos al instante</p>
+    </header>
 
     <!-- Paso 1: Subida -->
     <div id="step1">
-      <div id="dropzone" class="dropzone">Arrastra tus .docx/.doc/.pdf aquí o haz clic</div>
+      <div id="dropzone" class="dropzone">
+        Arrastra tus .docx/.doc/.pdf aquí o haz clic
+      </div>
       <input type="file" id="fileInput" multiple accept=".doc,.docx,.pdf" style="display:none" />
       <ul id="fileList1"></ul>
       <div class="controls">
@@ -44,6 +164,40 @@
         <button id="mergeBtn" disabled>Unir y Descargar</button>
       </div>
     </div>
+
+    <!-- Sección de Instrucciones -->
+    <div class="instructions">
+      <h2>Cómo usar PDFBuilder</h2>
+      <ol>
+        <li><strong>Arrastra o selecciona</strong> tus archivos (.doc, .docx o .pdf) en el área de carga.</li>
+        <li>Haz clic en <strong>Subir y Convertir</strong> y espera a que finalice la conversión. No cierres la ventana mientras procesa tus documentos.</li>
+        <li>Organiza tus archivos en el orden deseado usando los botones <strong>Subir</strong> y <strong>Bajar</strong>.</li>
+        <li>Pulsa <strong>Unir y Descargar</strong> para obtener tu PDF unificado.</li>
+      </ol>
+    </div>
+
+    <!-- Caja de donación al final -->
+    <div class="donation-box">
+      <p><strong>¿Te gusta PDFBuilder?</strong></p>
+      <p>Regálame una pizza para mantener esta plataforma en línea, ya que es gratuita. 
+      Tus aportes ayudan a cubrir los costes de los servidores y el tiempo para mejorarla.</p>
+      <div style="text-align:center; margin-top:12px;">
+        <script
+          type="text/javascript"
+          src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js"
+          data-name="bmc-button"
+          data-slug="esaihuaman2"
+          data-color="#FFDD00"
+          data-emoji="🍕"
+          data-font="Cookie"
+          data-text="Buy me a pizza"
+          data-outline-color="#000000"
+          data-font-color="#000000"
+          data-coffee-color="#ffffff">
+        </script>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -97,7 +251,9 @@
     // Eventos de carga
     dropzone.onclick = () => fileInput.click();
     fileInput.onchange = () => { files.push(...fileInput.files); renderList1(); };
-    ['dragover','dragenter'].forEach(e => dropzone.addEventListener(e, ev => { ev.preventDefault(); dropzone.classList.add('hover'); }));
+    ['dragover','dragenter'].forEach(e => dropzone.addEventListener(e, ev => { 
+      ev.preventDefault(); dropzone.classList.add('hover'); 
+    }));
     ['dragleave','drop'].forEach(e => dropzone.addEventListener(e, ev => {
       ev.preventDefault(); dropzone.classList.remove('hover');
       if (e === 'drop') { files.push(...ev.dataTransfer.files); renderList1(); }
@@ -134,7 +290,8 @@
     mergeBtn.onclick = async () => {
       mergeBtn.disabled = true; mergeBtn.textContent = 'Uniendo...';
       const res = await fetch('/merge', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId, order: files.map(f => f.name) })
       });
       const blob = await res.blob();
