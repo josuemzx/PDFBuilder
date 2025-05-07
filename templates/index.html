@@ -49,16 +49,18 @@
     const list2 = document.getElementById('fileList2');
     const mergeBtn = document.getElementById('mergeBtn');
 
-    // Render step1 list\    function renderList1() {
+    // Función para renderizar la lista de paso 1
+    function renderList1() {
       list1.innerHTML = '';
       files.forEach(f => {
-        const li = document.createElement('li'); li.textContent = f.name;
+        const li = document.createElement('li');
+        li.textContent = f.name;
         list1.appendChild(li);
       });
       uploadBtn.disabled = files.length === 0;
     }
 
-    // Drag & drop events
+    // Eventos Drag & Drop
     dropzone.onclick = () => fileInput.click();
     fileInput.onchange = () => { files.push(...fileInput.files); renderList1(); };
     ['dragover','dragenter'].forEach(evt => dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('hover'); }));
@@ -67,29 +69,32 @@
       if (evt === 'drop') { files.push(...e.dataTransfer.files); renderList1(); }
     }));
 
-    // Upload & convert
+    // Subir y convertir
     uploadBtn.onclick = async () => {
-      uploadBtn.disabled = true; uploadBtn.textContent = 'Convirtiendo...';
-      const form = new FormData(); files.forEach(f => form.append('file', f));
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = 'Convirtiendo...';
+      const form = new FormData();
+      files.forEach(f => form.append('file', f));
       const res = await fetch('/upload', { method: 'POST', body: form });
-      const data = await res.json(); sessionId = data.session_id;
-      // Prepare step2
+      const data = await res.json();
+      sessionId = data.session_id;
       files = data.files.map(name => ({ name }));
       renderList2();
-      step1.style.display = 'none'; step2.style.display = 'block';
+      step1.style.display = 'none';
+      step2.style.display = 'block';
     };
 
-    // Render step2 list with drag&drop reordering
+    // Render paso 2 con reorder drag&drop
     function renderList2() {
       list2.innerHTML = '';
       files.forEach((f, i) => {
-        const li = document.createElement('li'); li.draggable = true;
+        const li = document.createElement('li');
+        li.draggable = true;
         li.textContent = f.name;
-        li.dataset.index = i;
         li.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', i); li.classList.add('dragging'); });
-        li.addEventListener('dragover', e => { e.preventDefault(); });
+        li.addEventListener('dragover', e => e.preventDefault());
         li.addEventListener('drop', e => {
-          const from = parseInt(e.dataTransfer.getData('text/plain'));
+          const from = Number(e.dataTransfer.getData('text/plain'));
           const to = Array.from(list2.children).indexOf(li);
           files.splice(to, 0, files.splice(from, 1)[0]);
           renderList2();
@@ -100,9 +105,10 @@
       mergeBtn.disabled = files.length === 0;
     }
 
-    // Merge & download
+    // Unir y descargar
     mergeBtn.onclick = async () => {
-      mergeBtn.disabled = true; mergeBtn.textContent = 'Uniendo...';
+      mergeBtn.disabled = true;
+      mergeBtn.textContent = 'Uniendo...';
       const res = await fetch('/merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -110,7 +116,10 @@
       });
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'expediente_unificado.pdf'; a.click();
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'expediente_unificado.pdf';
+      a.click();
       mergeBtn.textContent = 'Unir y Descargar';
     };
   </script>
