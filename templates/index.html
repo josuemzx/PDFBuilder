@@ -5,143 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PDFBuilder Web</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f9; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f4f9; }
     .container { max-width: 800px; margin: 40px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    h1 { text-align: center; color: #333; }
-    .dropzone { border: 2px dashed #bbb; padding: 40px; text-align: center; color: #666; cursor: pointer; border-radius: 4px; }
+    h1 { text-align: center; }
+    .dropzone { border: 2px dashed #bbb; padding: 40px; text-align: center; color: #666; cursor: pointer; border-radius: 4px; margin-bottom: 20px; }
     .dropzone.hover { border-color: #777; color: #444; }
     ul { list-style: none; padding: 0; margin: 20px 0; max-height: 300px; overflow-y: auto; }
     li { background: #fafafa; margin: 6px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
-    li.selected { background: #ddd; }
+    li.selected { background: #e0e0e0; }
     .controls { text-align: center; margin-top: 20px; }
     button { background: #4a90e2; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; margin: 0 5px; }
     button:disabled { background: #ccc; cursor: not-allowed; }
-    .order-buttons { margin-bottom: 10px; }
+    .order-buttons { margin-bottom: 10px; text-align: center; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>PDFBuilder Web</h1>
-
-    <!-- Paso 1: Subida -->
     <div id="step1">
       <div id="dropzone" class="dropzone">Arrastra tus .docx/.doc/.pdf aquí o haz clic</div>
       <input type="file" id="fileInput" multiple accept=".doc,.docx,.pdf" style="display:none" />
       <ul id="fileList1"></ul>
-      <div class="controls">
-        <button id="uploadBtn" disabled>Subir y Convertir</button>
-      </div>
+      <div class="controls"><button id="uploadBtn" disabled>Subir y Convertir</button></div>
     </div>
-
-    <!-- Paso 2: Orden -->
     <div id="step2" style="display:none">
       <div class="order-buttons">
         <button id="upBtn" disabled>Subir</button>
         <button id="downBtn" disabled>Bajar</button>
       </div>
       <ul id="fileList2"></ul>
-      <div class="controls">
-        <button id="mergeBtn" disabled>Unir y Descargar</button>
-      </div>
+      <div class="controls"><button id="mergeBtn" disabled>Unir y Descargar</button></div>
     </div>
   </div>
-
   <script>
-    let files = [], sessionId;
-    const dropzone = document.getElementById('dropzone');
-    const fileInput = document.getElementById('fileInput');
-    const fileList1 = document.getElementById('fileList1');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const step1 = document.getElementById('step1');
-    const step2 = document.getElementById('step2');
-    const fileList2 = document.getElementById('fileList2');
-    const upBtn = document.getElementById('upBtn');
-    const downBtn = document.getElementById('downBtn');
-    const mergeBtn = document.getElementById('mergeBtn');
-    let selectedIndex = -1;
+    let files = [], sessionId; let selectedIndex = -1;
+    const dropzone = document.getElementById('dropzone'), fileInput = document.getElementById('fileInput');
+    const fileList1 = document.getElementById('fileList1'), uploadBtn = document.getElementById('uploadBtn');
+    const step1 = document.getElementById('step1'), step2 = document.getElementById('step2');
+    const fileList2 = document.getElementById('fileList2'), upBtn = document.getElementById('upBtn');
+    const downBtn = document.getElementById('downBtn'), mergeBtn = document.getElementById('mergeBtn');
 
-    // Render paso 1
-    function renderList1() {
-      fileList1.innerHTML = '';
-      files.forEach(f => {
-        const li = document.createElement('li');
-        li.textContent = f.name;
-        fileList1.appendChild(li);
-      });
-      uploadBtn.disabled = files.length === 0;
-    }
+    function renderList1(){ fileList1.innerHTML=''; files.forEach(f=>{const li=document.createElement('li'); li.textContent=f.name; fileList1.appendChild(li); }); uploadBtn.disabled=files.length===0; }
+    function renderList2(){ fileList2.innerHTML=''; files.forEach((f,i)=>{ const li=document.createElement('li'); li.textContent=f.name; if(i===selectedIndex) li.classList.add('selected'); li.onclick=()=>{ selectedIndex=i; updateButtons(); renderList2(); }; fileList2.appendChild(li); }); mergeBtn.disabled=files.length===0; updateButtons(); }
+    function updateButtons(){ upBtn.disabled=selectedIndex<=0; downBtn.disabled=selectedIndex<0||selectedIndex>=files.length-1; }
 
-    // Render paso 2
-    function renderList2() {
-      fileList2.innerHTML = '';
-      files.forEach((f, idx) => {
-        const li = document.createElement('li');
-        li.textContent = f.name;
-        if (idx === selectedIndex) li.classList.add('selected');
-        li.addEventListener('click', () => {
-          selectedIndex = idx;
-          updateButtons();
-          renderList2();
-        });
-        fileList2.appendChild(li);
-      });
-      mergeBtn.disabled = files.length === 0;
-      updateButtons();
-    }
+    dropzone.onclick=()=>fileInput.click();
+    fileInput.onchange=()=>{ files.push(...fileInput.files); renderList1(); };
+    ['dragover','dragenter'].forEach(e=> dropzone.addEventListener(e,ev=>{ ev.preventDefault(); dropzone.classList.add('hover'); }));
+    ['dragleave','drop'].forEach(e=> dropzone.addEventListener(e,ev=>{ ev.preventDefault(); dropzone.classList.remove('hover'); if(e==='drop'){ files.push(...ev.dataTransfer.files); renderList1(); } }));
 
-    function updateButtons() {
-      upBtn.disabled = selectedIndex <= 0;
-      downBtn.disabled = selectedIndex < 0 || selectedIndex >= files.length - 1;
-    }
-
-    // Eventos de carga
-    dropzone.onclick = () => fileInput.click();
-    fileInput.onchange = () => { files.push(...fileInput.files); renderList1(); };
-    ['dragover','dragenter'].forEach(e => dropzone.addEventListener(e, ev => { ev.preventDefault(); dropzone.classList.add('hover'); }));
-    ['dragleave','drop'].forEach(e => dropzone.addEventListener(e, ev => {
-      ev.preventDefault(); dropzone.classList.remove('hover');
-      if (e === 'drop') { files.push(...ev.dataTransfer.files); renderList1(); }
-    }));
-
-    // Subir y convertir
-    uploadBtn.onclick = async () => {
-      uploadBtn.disabled = true; uploadBtn.textContent = 'Convirtiendo...';
-      const form = new FormData(); files.forEach(f => form.append('file', f));
-      const res = await fetch('/upload', { method: 'POST', body: form });
-      const data = await res.json(); sessionId = data.session_id;
-      files = data.files.map(name => ({ name }));
-      step1.style.display = 'none'; step2.style.display = 'block';
+    uploadBtn.onclick=async()=>{
+      uploadBtn.disabled=true; uploadBtn.textContent='Convirtiendo...';
+      const form=new FormData(); files.forEach(f=>form.append('file',f));
+      const res=await fetch('/upload',{method:'POST',body:form});
+      const data=await res.json(); sessionId=data.session_id; files=data.files.map(n=>({name:n}));
+      step1.style.display='none'; step2.style.display='block';
       renderList2();
     };
 
-    // Mover elementos
-    upBtn.onclick = () => {
-      if (selectedIndex > 0) {
-        [files[selectedIndex-1], files[selectedIndex]] = [files[selectedIndex], files[selectedIndex-1]];
-        selectedIndex--;
-        renderList2();
-      }
-    };
-    downBtn.onclick = () => {
-      if (selectedIndex < files.length-1) {
-        [files[selectedIndex+1], files[selectedIndex]] = [files[selectedIndex], files[selectedIndex+1]];
-        selectedIndex++;
-        renderList2();
-      }
-    };
+    upBtn.onclick=()=>{ if(selectedIndex>0){ [files[selectedIndex-1],files[selectedIndex]]=[files[selectedIndex],files[selectedIndex-1]]; selectedIndex--; renderList2(); }};
+    downBtn.onclick=()=>{ if(selectedIndex<files.length-1){ [files[selectedIndex+1],files[selectedIndex]]=[files[selectedIndex],files[selectedIndex+1]]; selectedIndex++; renderList2(); }};
 
-    // Unir y descargar
-    mergeBtn.onclick = async () => {
-      mergeBtn.disabled = true; mergeBtn.textContent = 'Uniendo...';
-      const res = await fetch('/merge', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, order: files.map(f => f.name) })
-      });
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'expediente_unificado.pdf'; a.click();
-      mergeBtn.textContent = 'Unir y Descargar';
+    mergeBtn.onclick=async()=>{
+      mergeBtn.disabled=true; mergeBtn.textContent='Uniendo...';
+      const res=await fetch('/merge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,order:files.map(f=>f.name)})});
+      const blob=await res.blob(); const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='expediente_unificado.pdf'; a.click();
+      mergeBtn.textContent='Unir y Descargar';
     };
   </script>
-</body>
 </html>

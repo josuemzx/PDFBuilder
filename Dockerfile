@@ -20,8 +20,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiamos la aplicación y templates
 COPY . ./
 
-# Puerto genérico, Render inyecta $PORT
+# Exponemos puerto (Render inyecta $PORT automáticamente)
 EXPOSE 10000
 
-# Arrancamos con Gunicorn (timeout 600s)
+# Arrancamos con Gunicorn, timeout 600s
 CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-10000} --timeout 600 app:app"]
